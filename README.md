@@ -73,26 +73,48 @@ rfft(pl.col("spectrum")).ifft()       # inverse
 rfft(pl.col("spectrum")).magnitude()  # magnitude
 ```
 
+### Direct functions
+
+For lower overhead on smaller signals, `fft_direct` and `ifft_direct` bypass the Polars expression engine and operate directly on Series:
+
+```python
+from polars_rfft import fft_direct, ifft_direct
+
+re, im = fft_direct(df["signal"])           # Series → (Series, Series)
+re, im = ifft_direct(re, im)               # (Series, Series) → (Series, Series)
+```
+
 ## Performance
 
-Benchmarked end-to-end against numpy on signals of varying length. Median of 5 runs after warmup.
+Benchmarked end-to-end against numpy on signals of varying length. Median of 7 runs after warmup.
+
+### Expression API (`rfft().fft()`)
 
 | Signal length | Operation | polars-rfft | numpy | Speedup |
 |-|-|-|-|-|
-| 1,024 | fft | 0.2 ms | 0.0 ms | 0.1x |
-| 1,024 | ifft | 0.1 ms | 0.0 ms | 0.1x |
-| 4,096 | fft | 0.2 ms | 0.0 ms | 0.2x |
-| 4,096 | ifft | 0.2 ms | 0.0 ms | 0.2x |
-| 16,384 | fft | 0.5 ms | 0.5 ms | 1.0x |
-| 16,384 | ifft | 0.4 ms | 0.2 ms | 0.4x |
-| 65,536 | fft | 1.2 ms | 2.6 ms | **2.1x** |
-| 65,536 | ifft | 1.2 ms | 1.5 ms | **1.2x** |
-| 262,144 | fft | 6.3 ms | 12.3 ms | **2.0x** |
-| 262,144 | ifft | 6.7 ms | 7.8 ms | **1.2x** |
-| 1,048,576 | fft | 30.9 ms | 57.3 ms | **1.9x** |
-| 1,048,576 | ifft | 31.8 ms | 41.4 ms | **1.3x** |
+| 1,024 | fft | 0.14 ms | 0.02 ms | 0.2x |
+| 4,096 | fft | 0.24 ms | 0.08 ms | 0.3x |
+| 16,384 | fft | 0.66 ms | 0.99 ms | **1.5x** |
+| 65,536 | fft | 2.2 ms | 4.7 ms | **2.1x** |
+| 262,144 | fft | 10.2 ms | 22.1 ms | **2.2x** |
+| 1,048,576 | fft | 33.9 ms | 53.3 ms | **1.9x** |
 
-At small sizes (< 16K), numpy is faster due to Polars expression dispatch overhead. At 64K+ elements, RustFFT's optimized radix algorithms dominate — forward FFT is ~2x faster than numpy.
+### Direct API (`fft_direct()`)
+
+Bypasses Polars expression dispatch for ~0.1ms less overhead:
+
+| Signal length | Operation | fft_direct | numpy | Speedup |
+|-|-|-|-|-|
+| 64 | fft | 0.014 ms | 0.013 ms | 0.9x |
+| 256 | fft | 0.018 ms | 0.013 ms | 0.7x |
+| 1,024 | fft | 0.040 ms | 0.022 ms | 0.6x |
+| 4,096 | fft | 0.14 ms | 0.08 ms | 0.5x |
+| 16,384 | fft | 0.64 ms | 0.99 ms | **1.5x** |
+| 65,536 | fft | 2.1 ms | 4.7 ms | **2.3x** |
+| 262,144 | fft | 9.9 ms | 22.1 ms | **2.2x** |
+| 1,048,576 | fft | 27.9 ms | 53.3 ms | **1.9x** |
+
+At small sizes (< 4K), numpy is faster due to its highly optimized C/Fortran backend. At 16K+ elements, RustFFT's radix algorithms dominate — up to 2.3x faster than numpy. The direct API eliminates ~0.1ms of Polars expression dispatch overhead, matching numpy at very small sizes.
 
 Run it yourself:
 

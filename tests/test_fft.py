@@ -6,7 +6,7 @@ import numpy as np
 import polars as pl
 import pytest
 from numpy.testing import assert_allclose
-from polars_rfft import rfft
+from polars_rfft import fft_direct, ifft_direct, rfft
 
 
 def _unpack_struct(series: pl.Series) -> tuple[np.ndarray, np.ndarray]:
@@ -233,3 +233,64 @@ class TestPowerSpectrum:
         )["pow"].to_numpy()
 
         assert_allclose(result, expected, atol=1e-10)
+
+
+# ── Direct pyfunction parity with numpy ──
+
+
+class TestFftDirect:
+    @pytest.mark.parametrize("n", [4, 8, 16, 64, 256, 1024])
+    def test_fft_direct_vs_numpy(self, n: int):
+        """fft_direct matches numpy.fft.fft."""
+        rng = np.random.default_rng(42)
+        signal = rng.standard_normal(n)
+        expected = np.fft.fft(signal)
+
+        s = pl.Series("x", signal.tolist())
+        re, im = fft_direct(s)
+
+        assert_allclose(re.to_numpy(), expected.real, atol=1e-10)
+        assert_allclose(im.to_numpy(), expected.imag, atol=1e-10)
+
+    def test_fft_direct_non_power_of_two(self):
+        """fft_direct works for non-power-of-2 lengths."""
+        rng = np.random.default_rng(123)
+        for n in [3, 7, 13, 100, 997]:
+            signal = rng.standard_normal(n)
+            expected = np.fft.fft(signal)
+
+            s = pl.Series("x", signal.tolist())
+            re, im = fft_direct(s)
+
+            assert_allclose(re.to_numpy(), expected.real, atol=1e-8, err_msg=f"n={n}")
+            assert_allclose(im.to_numpy(), expected.imag, atol=1e-8, err_msg=f"n={n}")
+
+
+class TestIfftDirect:
+    @pytest.mark.parametrize("n", [4, 8, 16, 64, 256, 1024])
+    def test_ifft_direct_vs_numpy(self, n: int):
+        """ifft_direct matches numpy.fft.ifft."""
+        rng = np.random.default_rng(77)
+        signal = rng.standard_normal(n)
+        spectrum = np.fft.fft(signal)
+        expected = np.fft.ifft(spectrum)
+
+        re_in = pl.Series("re", spectrum.real.tolist())
+        im_in = pl.Series("im", spectrum.imag.tolist())
+        re, im = ifft_direct(re_in, im_in)
+
+        assert_allclose(re.to_numpy(), expected.real, atol=1e-10)
+        assert_allclose(im.to_numpy(), expected.imag, atol=1e-10)
+
+    @pytest.mark.parametrize("n", [4, 8, 16, 64, 256, 1024])
+    def test_roundtrip_direct(self, n: int):
+        """fft_direct → ifft_direct recovers original signal."""
+        rng = np.random.default_rng(55)
+        signal = rng.standard_normal(n)
+
+        s = pl.Series("x", signal.tolist())
+        re_fft, im_fft = fft_direct(s)
+        re_rec, im_rec = ifft_direct(re_fft, im_fft)
+
+        assert_allclose(re_rec.to_numpy(), signal, atol=1e-10)
+        assert_allclose(im_rec.to_numpy(), np.zeros(n), atol=1e-10)
