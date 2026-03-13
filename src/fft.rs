@@ -17,7 +17,7 @@ fn pack_complex(re: Vec<f64>, im: Vec<f64>, name: &str) -> PolarsResult<Series> 
     let len = re.len();
     let re_series = Float64Chunked::from_vec(PlSmallStr::from("re"), re).into_series();
     let im_series = Float64Chunked::from_vec(PlSmallStr::from("im"), im).into_series();
-    let fields = vec![re_series, im_series];
+    let fields = [re_series, im_series];
     StructChunked::from_series(PlSmallStr::from(name), len, fields.iter())
         .map(|ca| ca.into_series())
 }
