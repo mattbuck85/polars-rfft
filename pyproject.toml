@@ -1,0 +1,35 @@
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "polars-rfft"
+version = "0.1.0"
+description = "FFT as native Polars expressions — forward/inverse FFT, magnitude, phase, and power spectrum, powered by RustFFT."
+requires-python = ">=3.9"
+dependencies = ["polars>=1.0"]
+readme = "README.md"
+license = "MIT"
+keywords = ["polars", "fft", "signal-processing", "rust"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+
+[project.urls]
+Homepage = "https://github.com/mattbuck85/polars-rfft"
+Repository = "https://github.com/mattbuck85/polars-rfft"
+Issues = "https://github.com/mattbuck85/polars-rfft/issues"
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "numpy>=1.26", "maturin>=1.7"]
+
+[tool.maturin]
+module-name = "polars_rfft._polars_rfft"
+python-source = "python"
+features = ["pyo3/extension-module"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
