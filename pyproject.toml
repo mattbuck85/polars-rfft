@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "polars-rfft"
-version = "0.1.0"
+version = "0.1.1"
 description = "FFT as native Polars expressions — forward/inverse FFT, magnitude, phase, and power spectrum, powered by RustFFT."
 requires-python = ">=3.9"
 dependencies = ["polars>=1.0"]
