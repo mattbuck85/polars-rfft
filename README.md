@@ -86,7 +86,7 @@ re, im = ifft_direct(re, im)               # (Series, Series) → (Series, Serie
 
 ## Performance
 
-Benchmarked end-to-end against numpy on signals of varying length. Median of 7 runs after warmup.
+Benchmarked on x86 arch end-to-end against numpy on signals of varying length. Median of 7 runs after warmup.
 
 ### Expression API (`rfft().fft()`)
 
